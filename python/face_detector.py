@@ -1,4 +1,4 @@
-import traceback  # 상단에 추가
+import traceback
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -15,7 +15,7 @@ def run_face_detection():
     logger = EmotionLogger()
 
     with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)  # ✅ Mac 내장 웹캠 사용 시 번호를 0 → 1로 변경
 
         if not cap.isOpened():
             print("❌ 웹캠을 열 수 없습니다.")
@@ -46,7 +46,6 @@ def run_face_detection():
 
                     face_crop = image_bgr[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
 
-                    # 유효성 검사
                     if face_crop.size == 0 or face_crop.shape[0] < 30 or face_crop.shape[1] < 30:
                         print("⚠️ 감정 추론 건너뜀: 얼굴 영역이 너무 작음")
                         logger.log("unclassified")
