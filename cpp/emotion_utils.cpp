@@ -1,7 +1,30 @@
+#include "emotion_utils.hpp"
 #include <iostream>
+#include <unordered_map>
 #include <string>
+#include <sstream>
+#include <mutex>
 
-std::string process_emotion(const std::string& emotion) {
-    std::cout << "[C++] 감정 처리 중: " << emotion << std::endl;
-    return "C++가 처리한 감정: " + emotion;
+namespace {
+    std::unordered_map<std::string, int> emotion_counts;
+    std::mutex emotion_mutex;
+}
+
+void accumulate_emotion(const std::string& emotion) {
+    std::lock_guard<std::mutex> lock(emotion_mutex);
+    emotion_counts[emotion]++;
+}
+
+std::string get_emotion_stats() {
+    std::lock_guard<std::mutex> lock(emotion_mutex);
+    std::ostringstream oss;
+    for (const auto& pair : emotion_counts) {
+        oss << pair.first << ": " << pair.second << "\n"; 
+    }
+    return oss.str();
+}
+
+void reset_emotions() {
+    std::lock_guard<std::mutex> lock(emotion_mutex);
+    emotion_counts.clear();
 }

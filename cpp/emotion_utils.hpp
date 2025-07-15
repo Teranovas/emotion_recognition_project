@@ -3,6 +3,8 @@
 
 #include <string>
 
-std::string process_emotion(const std::string& input);
+void accumulate_emotion(const std::string& emotion);
+std::string get_emotion_stats();
+void reset_emotions();
 
 #endif

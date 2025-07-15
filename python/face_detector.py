@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from model.infer import predict_emotion
 from python.recorder import EmotionLogger
-from python.cpp_bridge import send_emotion_to_cpp  # ✅ C++ 연동 함수 추가
+from python.cpp_bridge import send_emotion_to_cpp, get_emotion_stats_from_cpp, reset_cpp_stats
 
 def run_face_detection():
     mp_face_detection = mp.solutions.face_detection
@@ -94,8 +94,16 @@ def run_face_detection():
             image_bgr = np.array(image_pil)
             cv2.imshow("Face Detection + Emotion", image_bgr)
 
-            if cv2.waitKey(5) & 0xFF == 27:
+            # ✅ 키 입력 처리
+            key = cv2.waitKey(5) & 0xFF
+            if key == 27:  # ESC
                 break
+            elif key == ord('s'):
+                print("\n📊 [C++] 감정 통계")
+                print(get_emotion_stats_from_cpp())  # ← 줄바꿈 적용
+            elif key == ord('r'):
+                reset_cpp_stats()
+                print("🔁 감정 통계 초기화됨")
 
         cap.release()
         cv2.destroyAllWindows()
