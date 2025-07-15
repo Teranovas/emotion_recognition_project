@@ -4,7 +4,9 @@ import mediapipe as mp
 import numpy as np
 import sys
 import os
+from PIL import ImageFont, ImageDraw, Image
 from collections import Counter
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from model.infer import predict_emotion
@@ -16,8 +18,12 @@ def run_face_detection():
     logger = EmotionLogger()
     emotion_counter = Counter()
 
+    # ✅ Mac 전용 한글 폰트
+    font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+    font = ImageFont.truetype(font_path, 28)
+
     with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
-        cap = cv2.VideoCapture(1)  # 필요한 경우 0, 2 등으로 변경
+        cap = cv2.VideoCapture(1)
 
         if not cap.isOpened():
             print("❌ 웹캠을 열 수 없습니다.")
@@ -34,6 +40,9 @@ def run_face_detection():
             image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = face_detection.process(image_rgb)
             image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+
+            image_pil = Image.fromarray(image_bgr)
+            draw = ImageDraw.Draw(image_pil)
 
             if results.detections:
                 for detection in results.detections:
@@ -56,14 +65,13 @@ def run_face_detection():
                     try:
                         face_gray = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
                         emotion = predict_emotion(face_gray)
+                        korean_label = emotion_to_korean(emotion)
 
                         # ✅ 감정 카운트 누적
-                        emotion_counter[emotion] += 1
+                        emotion_counter[korean_label] += 1
 
                         # ✅ 얼굴 위에 감정 표시
-                        cv2.putText(image_bgr, f'{emotion}', (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-
+                        draw.text((x1, y1 - 30), korean_label, font=font, fill=(0, 255, 0))
                         logger.log(emotion)
 
                     except Exception as e:
@@ -71,13 +79,11 @@ def run_face_detection():
                         traceback.print_exc()
                         logger.log("unclassified")
 
-            # ✅ 상단에 감정 카운트 출력
-            summary_text = "   ".join(
-                [f"{emoji(emotion)} {emotion}: {count}" for emotion, count in emotion_counter.items()]
-            )
-            cv2.putText(image_bgr, summary_text, (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            # ✅ 화면 상단에 감정 카운트 표시
+            count_text = "   ".join([f"{label} {count}" for label, count in emotion_counter.items()])
+            draw.text((10, 10), count_text, font=font, fill=(255, 255, 255))
 
+            image_bgr = np.array(image_pil)
             cv2.imshow("Face Detection + Emotion", image_bgr)
 
             if cv2.waitKey(5) & 0xFF == 27:
@@ -86,18 +92,17 @@ def run_face_detection():
         cap.release()
         cv2.destroyAllWindows()
 
-# ✅ 감정별 이모지 매핑 함수
-def emoji(emotion: str) -> str:
+def emotion_to_korean(emotion: str) -> str:
     return {
-        "angry": "😠",
-        "disgust": "🤢",
-        "fear": "😨",
-        "happy": "😄",
-        "neutral": "😐",
-        "sad": "😢",
-        "surprise": "😲",
-        "unclassified": "❓"
-    }.get(emotion, "❓")
+        "angry": "화남",
+        "disgust": "역겨움",
+        "fear": "공포",
+        "happy": "기쁨",
+        "neutral": "중립",
+        "sad": "슬픔",
+        "surprise": "놀람",
+        "unclassified": "분류불가"
+    }.get(emotion, "알수없음")
 
 if __name__ == "__main__":
     run_face_detection()
