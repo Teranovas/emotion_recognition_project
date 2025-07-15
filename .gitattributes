@@ -1,0 +1,6 @@
+# 📦 빌드 시스템 제외
+CMakeLists.txt linguist-vendored
+Makefile linguist-vendored
+
+# ⚙️ CMake 빌드 디렉토리 제외
+cpp/build/** linguist-vendored
