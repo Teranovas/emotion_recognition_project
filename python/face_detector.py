@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 import sys
 import os
+from collections import Counter
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from model.infer import predict_emotion
@@ -13,9 +14,10 @@ def run_face_detection():
     mp_face_detection = mp.solutions.face_detection
     mp_drawing = mp.solutions.drawing_utils
     logger = EmotionLogger()
+    emotion_counter = Counter()
 
     with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
-        cap = cv2.VideoCapture(1)  # ✅ Mac 내장 웹캠 사용 시 번호를 0 → 1로 변경
+        cap = cv2.VideoCapture(1)  # 필요한 경우 0, 2 등으로 변경
 
         if not cap.isOpened():
             print("❌ 웹캠을 열 수 없습니다.")
@@ -55,6 +57,10 @@ def run_face_detection():
                         face_gray = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
                         emotion = predict_emotion(face_gray)
 
+                        # ✅ 감정 카운트 누적
+                        emotion_counter[emotion] += 1
+
+                        # ✅ 얼굴 위에 감정 표시
                         cv2.putText(image_bgr, f'{emotion}', (x1, y1 - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
 
@@ -65,6 +71,13 @@ def run_face_detection():
                         traceback.print_exc()
                         logger.log("unclassified")
 
+            # ✅ 상단에 감정 카운트 출력
+            summary_text = "   ".join(
+                [f"{emoji(emotion)} {emotion}: {count}" for emotion, count in emotion_counter.items()]
+            )
+            cv2.putText(image_bgr, summary_text, (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
             cv2.imshow("Face Detection + Emotion", image_bgr)
 
             if cv2.waitKey(5) & 0xFF == 27:
@@ -72,6 +85,19 @@ def run_face_detection():
 
         cap.release()
         cv2.destroyAllWindows()
+
+# ✅ 감정별 이모지 매핑 함수
+def emoji(emotion: str) -> str:
+    return {
+        "angry": "😠",
+        "disgust": "🤢",
+        "fear": "😨",
+        "happy": "😄",
+        "neutral": "😐",
+        "sad": "😢",
+        "surprise": "😲",
+        "unclassified": "❓"
+    }.get(emotion, "❓")
 
 if __name__ == "__main__":
     run_face_detection()
