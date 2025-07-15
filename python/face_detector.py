@@ -7,10 +7,12 @@ import os
 from PIL import ImageFont, ImageDraw, Image
 from collections import Counter
 
+# 상위 디렉토리 모듈 불러오기 설정
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from model.infer import predict_emotion
 from python.recorder import EmotionLogger
+from python.cpp_bridge import send_emotion_to_cpp  # ✅ C++ 연동 함수 추가
 
 def run_face_detection():
     mp_face_detection = mp.solutions.face_detection
@@ -18,12 +20,12 @@ def run_face_detection():
     logger = EmotionLogger()
     emotion_counter = Counter()
 
-    # ✅ Mac 전용 한글 폰트
+    # ✅ Mac용 한글 폰트 경로
     font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
     font = ImageFont.truetype(font_path, 28)
 
     with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(1)  # 필요 시 인덱스 조정
 
         if not cap.isOpened():
             print("❌ 웹캠을 열 수 없습니다.")
@@ -41,6 +43,7 @@ def run_face_detection():
             results = face_detection.process(image_rgb)
             image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
 
+            # PIL 이미지 변환 (한글 라벨용)
             image_pil = Image.fromarray(image_bgr)
             draw = ImageDraw.Draw(image_pil)
 
@@ -67,19 +70,24 @@ def run_face_detection():
                         emotion = predict_emotion(face_gray)
                         korean_label = emotion_to_korean(emotion)
 
-                        # ✅ 감정 카운트 누적
+                        # ✅ 감정 카운트
                         emotion_counter[korean_label] += 1
 
-                        # ✅ 얼굴 위에 감정 표시
+                        # ✅ 얼굴 위에 감정 라벨 표시 (한글)
                         draw.text((x1, y1 - 30), korean_label, font=font, fill=(0, 255, 0))
+
+                        # ✅ 감정 로깅
                         logger.log(emotion)
+
+                        # ✅ C++로 감정 전달
+                        send_emotion_to_cpp(emotion)
 
                     except Exception as e:
                         print(f"⚠️ 감정 추론 실패: {e}")
                         traceback.print_exc()
                         logger.log("unclassified")
 
-            # ✅ 화면 상단에 감정 카운트 표시
+            # ✅ 상단 감정 카운트 표시
             count_text = "   ".join([f"{label} {count}" for label, count in emotion_counter.items()])
             draw.text((10, 10), count_text, font=font, fill=(255, 255, 255))
 
@@ -92,6 +100,7 @@ def run_face_detection():
         cap.release()
         cv2.destroyAllWindows()
 
+# 감정 코드 → 한글 변환 함수
 def emotion_to_korean(emotion: str) -> str:
     return {
         "angry": "화남",
