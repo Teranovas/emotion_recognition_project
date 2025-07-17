@@ -1,22 +1,21 @@
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import sys
+import os
 
-def plot_emotion_bar_chart(stats_str: str):
-    # C++에서 온 문자열을 줄 단위로 분리
-    lines = [line.strip() for line in stats_str.strip().split('\n') if line]
-    labels = []
-    counts = []
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+def plot_emotion_bar_chart(emotion_counts: dict):
+    font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
+    fontprop = fm.FontProperties(fname=font_path)
+    plt.rcParams['font.family'] = fontprop.get_name()
 
-    for line in lines:
-        if ':' in line:
-            label, count = line.split(':')
-            labels.append(label.strip())
-            counts.append(int(count.strip()))
+    emotions = list(emotion_counts.keys())
+    counts = list(emotion_counts.values())
 
-    # 바 그래프 그리기
-    plt.figure(figsize=(8, 5))
-    plt.bar(labels, counts)
-    plt.title("감정 통계 (C++ 처리 결과)")
+    plt.figure(figsize=(8, 6))
+    plt.bar(emotions, counts)
+    plt.title("감정 분포 (C++ 연산 결과)")
     plt.xlabel("감정")
-    plt.ylabel("횟수")
+    plt.ylabel("빈도")
     plt.tight_layout()
     plt.show()

@@ -13,6 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from model.infer import predict_emotion
 from python.recorder import EmotionLogger
 from python.cpp_bridge import send_emotion_to_cpp, get_emotion_stats_from_cpp, reset_cpp_stats
+from python.visualizer import plot_emotion_bar_chart
 
 def run_face_detection():
     mp_face_detection = mp.solutions.face_detection
@@ -100,7 +101,10 @@ def run_face_detection():
                 break
             elif key == ord('s'):
                 print("\n📊 [C++] 감정 통계")
-                print(get_emotion_stats_from_cpp())  # ← 줄바꿈 적용
+                stats_str = get_emotion_stats_from_cpp()
+                print(stats_str, end="") 
+                stats_dict = parse_emotion_stats(stats_str)
+                plot_emotion_bar_chart(stats_dict)  # ← 줄바꿈 적용
             elif key == ord('r'):
                 reset_cpp_stats()
                 print("🔁 감정 통계 초기화됨")
@@ -123,3 +127,13 @@ def emotion_to_korean(emotion: str) -> str:
 
 if __name__ == "__main__":
     run_face_detection()
+
+
+def parse_emotion_stats(stats_str: str) -> dict:
+    stats = {}
+    lines = stats_str.strip().splitlines()
+    for line in lines:
+        if ':' in line:
+            emotion, count = line.split(':')
+            stats[emotion.strip()] = int(count.strip())
+    return stats
