@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 import sys
 import os
+import glob
 from PIL import ImageFont, ImageDraw, Image
 from collections import Counter
 
@@ -13,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from model.infer import predict_emotion
 from python.recorder import EmotionLogger
 from python.cpp_bridge import send_emotion_to_cpp, get_emotion_stats_from_cpp, reset_cpp_stats
-from python.visualizer import plot_emotion_bar_chart
+from python.visualizer import plot_emotion_bar_chart, plot_emotion_trend
 
 def run_face_detection():
     mp_face_detection = mp.solutions.face_detection
@@ -114,6 +115,14 @@ def run_face_detection():
             elif key == ord('r'):
                 reset_cpp_stats()
                 print("🔁 감정 통계 초기화됨")
+            elif key == ord('t'):
+                print("📈 감정 변화 트렌드 그래프를 그리는 중...")
+                latest_csv = get_latest_log_file()
+                if latest_csv:
+                    print(f"📁 사용 로그 파일: {latest_csv}")
+                    plot_emotion_trend(latest_csv)
+                else:
+                    print("⚠️ 로그 파일을 찾을 수 없습니다.")
 
         cap.release()
         cv2.destroyAllWindows()
@@ -139,6 +148,12 @@ def parse_emotion_stats(stats_str: str) -> dict:
             emotion, count = line.split(':')
             stats[emotion.strip()] = int(count.strip())
     return stats
+
+def get_latest_log_file():
+    log_files = glob.glob("logs/emotion_log_*.csv")
+    if not log_files:
+        return None
+    return max(log_files, key=os.path.getmtime)
 
 if __name__ == "__main__":
     run_face_detection()
