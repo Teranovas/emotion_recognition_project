@@ -26,6 +26,9 @@ def run_face_detection():
     font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
     font = ImageFont.truetype(font_path, 28)
 
+    # ✅ 감정 필터링 상태
+    emotion_filter = None
+
     with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
         cap = cv2.VideoCapture(1)  # 필요 시 인덱스 조정
 
@@ -72,16 +75,13 @@ def run_face_detection():
                         emotion = predict_emotion(face_gray)
                         korean_label = emotion_to_korean(emotion)
 
-                        # ✅ 감정 카운트 (로컬)
+                        # ✅ 감정 필터링 체크
+                        if emotion_filter and korean_label != emotion_filter:
+                            continue  # 표시 안함
+
                         emotion_counter[korean_label] += 1
-
-                        # ✅ 얼굴 위에 감정 라벨 표시 (한글)
                         draw.text((x1, y1 - 30), korean_label, font=font, fill=(0, 255, 0))
-
-                        # ✅ 감정 로깅
                         logger.log(emotion)
-
-                        # ✅ C++로 감정 전달
                         send_emotion_to_cpp(emotion)
 
                     except Exception as e:
@@ -89,13 +89,12 @@ def run_face_detection():
                         traceback.print_exc()
                         logger.log("unclassified")
 
-            # ✅ 영상 좌측 상단: 반투명 감정 통계 표시
+            # ✅ 감정 통계 박스 표시
             stats_str = get_emotion_stats_from_cpp()
             stats_lines = stats_str.strip().splitlines()
             overlay_width = 280
             overlay_height = 40 + len(stats_lines) * 35
             draw.rectangle([(10, 10), (10 + overlay_width, 10 + overlay_height)], fill=(0, 0, 0, 180))
-
             draw.text((20, 20), "감정 통계 (C++)", font=font, fill=(255, 255, 0))
             for i, line in enumerate(stats_lines):
                 draw.text((20, 60 + i * 30), line, font=font, fill=(200, 200, 200))
@@ -123,6 +122,15 @@ def run_face_detection():
                     plot_emotion_trend(latest_csv)
                 else:
                     print("⚠️ 로그 파일을 찾을 수 없습니다.")
+            elif key == ord('f'):
+                if emotion_filter:
+                    print(f"🎛️ 감정 필터링 해제됨 (모든 감정 표시)")
+                    emotion_filter = None
+                else:
+                    print("🎯 필터링할 감정을 입력하세요 (예: 기쁨, 슬픔, 놀람): ", end="")
+                    user_input = input().strip()
+                    emotion_filter = user_input
+                    print(f"✅ '{emotion_filter}' 감정만 표시됩니다.")
 
         cap.release()
         cv2.destroyAllWindows()
