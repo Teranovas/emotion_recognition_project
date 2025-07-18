@@ -71,7 +71,7 @@ def run_face_detection():
                         emotion = predict_emotion(face_gray)
                         korean_label = emotion_to_korean(emotion)
 
-                        # ✅ 감정 카운트
+                        # ✅ 감정 카운트 (로컬)
                         emotion_counter[korean_label] += 1
 
                         # ✅ 얼굴 위에 감정 라벨 표시 (한글)
@@ -88,9 +88,16 @@ def run_face_detection():
                         traceback.print_exc()
                         logger.log("unclassified")
 
-            # ✅ 상단 감정 카운트 표시
-            count_text = "   ".join([f"{label} {count}" for label, count in emotion_counter.items()])
-            draw.text((10, 10), count_text, font=font, fill=(255, 255, 255))
+            # ✅ 영상 좌측 상단: 반투명 감정 통계 표시
+            stats_str = get_emotion_stats_from_cpp()
+            stats_lines = stats_str.strip().splitlines()
+            overlay_width = 280
+            overlay_height = 40 + len(stats_lines) * 35
+            draw.rectangle([(10, 10), (10 + overlay_width, 10 + overlay_height)], fill=(0, 0, 0, 180))
+
+            draw.text((20, 20), "감정 통계 (C++)", font=font, fill=(255, 255, 0))
+            for i, line in enumerate(stats_lines):
+                draw.text((20, 60 + i * 30), line, font=font, fill=(200, 200, 200))
 
             image_bgr = np.array(image_pil)
             cv2.imshow("Face Detection + Emotion", image_bgr)
@@ -101,10 +108,9 @@ def run_face_detection():
                 break
             elif key == ord('s'):
                 print("\n📊 [C++] 감정 통계")
-                stats_str = get_emotion_stats_from_cpp()
                 print(stats_str, end="") 
                 stats_dict = parse_emotion_stats(stats_str)
-                plot_emotion_bar_chart(stats_dict)  # ← 줄바꿈 적용
+                plot_emotion_bar_chart(stats_dict)
             elif key == ord('r'):
                 reset_cpp_stats()
                 print("🔁 감정 통계 초기화됨")
@@ -125,10 +131,6 @@ def emotion_to_korean(emotion: str) -> str:
         "unclassified": "분류불가"
     }.get(emotion, "알수없음")
 
-if __name__ == "__main__":
-    run_face_detection()
-
-
 def parse_emotion_stats(stats_str: str) -> dict:
     stats = {}
     lines = stats_str.strip().splitlines()
@@ -137,3 +139,6 @@ def parse_emotion_stats(stats_str: str) -> dict:
             emotion, count = line.split(':')
             stats[emotion.strip()] = int(count.strip())
     return stats
+
+if __name__ == "__main__":
+    run_face_detection()
