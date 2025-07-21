@@ -165,4 +165,3 @@ def get_latest_log_file():
 
 if __name__ == "__main__":
     run_face_detection()
-if return;
