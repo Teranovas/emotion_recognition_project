@@ -33,23 +33,24 @@ Python과 C++을 결합하여 고성능, 고가시성, 고확장성을 동시에
 
 ## 🧰 프로젝트 구조
 
+```bash
 emotion_recognition_project/
-├── cpp/ # C++ 감정 누적 및 바인딩 모듈
-│ ├── emotion_utils.cpp / .hpp
-│ ├── bindings.cpp
-│ └── video_processor.cpp
-├── model/ # 감정 분류 모델
-│ ├── train.py # CNN 모델 학습
-│ └── infer.py # 학습된 모델로 감정 예측
-├── python/ # Python 로직 및 시각화
-│ ├── face_detector.py # 실시간 감정 인식 메인
-│ ├── cpp_bridge.py # C++ pybind11 바인딩 모듈
-│ ├── recorder.py # 감정 로그 CSV 기록
-│ ├── visualizer.py # 바 차트 / 라인 그래프
-│ └── ...
-├── logs/ # 감정 로그 자동 저장 (.csv)
-├── assets/ # 그래프 이미지 저장 및 폰트
-├── run.py # ✅ 전체 실행 진입점
+├── cpp/                  
+│   ├── emotion_utils.cpp / .hpp      # C++ 감정 누적 및 바인딩
+│   ├── bindings.cpp
+│   └── video_processor.cpp
+├── model/
+│   ├── train.py                      # CNN 모델 학습
+│   └── infer.py                      # 학습된 모델로 감정 예측
+├── python/
+│   ├── face_detector.py              # 실시간 감정 인식 메인
+│   ├── cpp_bridge.py                 # C++ pybind11 바인딩 모듈
+│   ├── recorder.py                   # 감정 로그 CSV 기록
+│   ├── visualizer.py                 # 바 차트 / 라인 그래프
+│   └── ...
+├── logs/                             # 감정 로그 자동 저장 (.csv)
+├── assets/                           # 그래프 이미지 저장 및 폰트
+├── run.py                            # ✅ 전체 실행 진입점
 ├── requirements.txt
 └── README.md
 
