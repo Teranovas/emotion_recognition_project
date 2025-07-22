@@ -66,3 +66,40 @@ cd emotion_recognition_project
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+## 📸 샘플 실행 결과 (Sample Outputs)
+
+### ▶️ 실시간 감정 인식 UI 화면
+- 얼굴이 감지되면 실시간으로 감정이 분석되어 얼굴 위에 한글로 표시됩니다.
+- 좌측 상단에는 누적 감정 카운트가 표시됩니다.
+- `ESC` 키: 프로그램 종료
+
+![UI Sample](assets/sample_ui.png)
+
+---
+
+### 📊 감정 분포 막대 그래프
+- `s` 키를 누르면 C++ 모듈로부터 감정 통계를 받아 바 차트로 시각화됩니다.
+- matplotlib를 통해 즉시 출력됩니다.
+
+![Bar Chart](assets/sample_bar.png)
+
+---
+
+### 📈 감정 추이 그래프
+- `logs/*.csv` 감정 로그 기반으로 시간 흐름에 따른 감정 변화를 표시합니다.
+- 샘플 로그 파일로 생성된 결과입니다.
+- (별도 실행 또는 기록 후 사용)
+
+![Trend Chart](assets/sample_trend.png)
+
+---
+
+## ⌨️ 단축키 요약
+
+| 키(Key) | 기능 설명 |
+|--------|------------|
+| `ESC`  | 프로그램 종료 |
+| `s`    | C++ 감정 통계 요청 및 바 차트 시각화 |
+| `r`    | C++ 감정 통계 초기화 |
+| `f`    | 감정 필터링 모드 토글 (지정 감정만 표시) |
