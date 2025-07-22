@@ -71,6 +71,7 @@ cd emotion_recognition_project
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
 ## 📸 샘플 실행 결과 (Sample Outputs)
 
