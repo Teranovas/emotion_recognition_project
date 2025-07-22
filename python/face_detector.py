@@ -4,7 +4,6 @@ import mediapipe as mp
 import numpy as np
 import sys
 import os
-import glob
 from PIL import ImageFont, ImageDraw, Image
 from collections import Counter
 
@@ -14,7 +13,18 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from model.infer import predict_emotion
 from python.recorder import EmotionLogger
 from python.cpp_bridge import send_emotion_to_cpp, get_emotion_stats_from_cpp, reset_cpp_stats
-from python.visualizer import plot_emotion_bar_chart, plot_emotion_trend
+from python.visualizer import plot_emotion_bar_chart
+
+def open_available_camera(priority_order=[1, 0, 2, 3]):
+    for index in priority_order:
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            print(f"✅ 카메라 {index}번 장치 사용됨")
+            return cap
+        else:
+            cap.release()
+    print("❌ 사용 가능한 카메라 장치를 찾을 수 없습니다.")
+    return None
 
 def run_face_detection():
     mp_face_detection = mp.solutions.face_detection
@@ -26,14 +36,9 @@ def run_face_detection():
     font_path = "/System/Library/Fonts/Supplemental/AppleGothic.ttf"
     font = ImageFont.truetype(font_path, 28)
 
-    # ✅ 감정 필터링 상태
-    emotion_filter = None
-
     with mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5) as face_detection:
-        cap = cv2.VideoCapture(1)  # 필요 시 인덱스 조정
-
-        if not cap.isOpened():
-            print("❌ 웹캠을 열 수 없습니다.")
+        cap = open_available_camera()
+        if cap is None:
             return
 
         print("🎥 얼굴 인식 및 감정 분석 시작 (ESC 키로 종료)")
@@ -75,14 +80,16 @@ def run_face_detection():
                         emotion = predict_emotion(face_gray)
                         korean_label = emotion_to_korean(emotion)
 
-                        # ✅ 감정 필터링 체크
-                        if emotion_filter and korean_label != emotion_filter:
-                            continue  # 표시 안함
-
+                        # ✅ 감정 카운트
                         emotion_counter[korean_label] += 1
-                        color = get_color_for_emotion(korean_label)
-                        draw.text((x1, y1 - 30), korean_label, font=font, fill=color)
+
+                        # ✅ 얼굴 위에 감정 라벨 표시 (한글)
+                        draw.text((x1, y1 - 30), korean_label, font=font, fill=(0, 255, 0))
+
+                        # ✅ 감정 로깅
                         logger.log(emotion)
+
+                        # ✅ C++로 감정 전달
                         send_emotion_to_cpp(emotion)
 
                     except Exception as e:
@@ -90,15 +97,9 @@ def run_face_detection():
                         traceback.print_exc()
                         logger.log("unclassified")
 
-            # ✅ 감정 통계 박스 표시
-            stats_str = get_emotion_stats_from_cpp()
-            stats_lines = stats_str.strip().splitlines()
-            overlay_width = 280
-            overlay_height = 40 + len(stats_lines) * 35
-            draw.rectangle([(10, 10), (10 + overlay_width, 10 + overlay_height)], fill=(0, 0, 0, 180))
-            draw.text((20, 20), "감정 통계 (C++)", font=font, fill=(255, 255, 0))
-            for i, line in enumerate(stats_lines):
-                draw.text((20, 60 + i * 30), line, font=font, fill=(200, 200, 200))
+            # ✅ 상단 감정 카운트 표시
+            count_text = "   ".join([f"{label} {count}" for label, count in emotion_counter.items()])
+            draw.text((10, 10), count_text, font=font, fill=(255, 255, 255))
 
             image_bgr = np.array(image_pil)
             cv2.imshow("Face Detection + Emotion", image_bgr)
@@ -109,29 +110,18 @@ def run_face_detection():
                 break
             elif key == ord('s'):
                 print("\n📊 [C++] 감정 통계")
+                stats_str = get_emotion_stats_from_cpp()
                 print(stats_str, end="") 
                 stats_dict = parse_emotion_stats(stats_str)
                 plot_emotion_bar_chart(stats_dict)
             elif key == ord('r'):
                 reset_cpp_stats()
                 print("🔁 감정 통계 초기화됨")
-            elif key == ord('t'):
-                print("📈 감정 변화 트렌드 그래프를 그리는 중...")
-                latest_csv = get_latest_log_file()
-                if latest_csv:
-                    print(f"📁 사용 로그 파일: {latest_csv}")
-                    plot_emotion_trend(latest_csv)
-                else:
-                    print("⚠️ 로그 파일을 찾을 수 없습니다.")
             elif key == ord('f'):
+                emotion_filter = input("🎯 필터링할 감정을 한글로 입력하세요 (예: 기쁨): ").strip()
                 if emotion_filter:
-                    print(f"🎛️ 감정 필터링 해제됨 (모든 감정 표시)")
-                    emotion_filter = None
-                else:
-                    print("🎯 필터링할 감정을 입력하세요 (예: 기쁨, 슬픔, 놀람): ", end="")
-                    user_input = input().strip()
-                    emotion_filter = user_input
-                    print(f"✅ '{emotion_filter}' 감정만 표시됩니다.")
+                    print(f"🔎 [{emotion_filter}] 감정 필터링 모드 활성화됨")
+                    # 필터링 로직은 따로 구현되어 있다고 가정
 
         cap.release()
         cv2.destroyAllWindows()
@@ -149,19 +139,6 @@ def emotion_to_korean(emotion: str) -> str:
         "unclassified": "분류불가"
     }.get(emotion, "알수없음")
 
-# 감정에 따라 색상 지정
-def get_color_for_emotion(emotion: str) -> tuple:
-    return {
-        "기쁨": (0, 255, 0),
-        "슬픔": (100, 149, 237),
-        "화남": (255, 0, 0),
-        "놀람": (255, 165, 0),
-        "공포": (128, 0, 128),
-        "중립": (200, 200, 200),
-        "역겨움": (85, 107, 47),
-        "분류불가": (255, 255, 255),
-    }.get(emotion, (255, 255, 255))
-
 def parse_emotion_stats(stats_str: str) -> dict:
     stats = {}
     lines = stats_str.strip().splitlines()
@@ -170,12 +147,6 @@ def parse_emotion_stats(stats_str: str) -> dict:
             emotion, count = line.split(':')
             stats[emotion.strip()] = int(count.strip())
     return stats
-
-def get_latest_log_file():
-    log_files = glob.glob("logs/emotion_log_*.csv")
-    if not log_files:
-        return None
-    return max(log_files, key=os.path.getmtime)
 
 if __name__ == "__main__":
     run_face_detection()

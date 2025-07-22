@@ -94,6 +94,10 @@ pip install -r requirements.txt
 
 ## 샘플 실행 결과 (Sample Outputs)
 
+```bash
+python run.py
+```
+
 ###  실시간 감정 인식 UI 화면
 - 얼굴이 감지되면 실시간으로 감정이 분석되어 얼굴 위에 한글로 표시됩.
 - 좌측 상단에는 누적 감정 카운트가 표시.
