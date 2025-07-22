@@ -57,8 +57,9 @@ emotion_recognition_project/
 ├── run.py                   # ✅ 전체 실행 진입점
 ├── requirements.txt
 └── README.md
+```bash
 
-
+---
 
 ## 🚀 실행 방법 (Step-by-Step)
 
