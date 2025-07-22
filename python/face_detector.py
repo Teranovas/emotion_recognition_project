@@ -80,7 +80,8 @@ def run_face_detection():
                             continue  # 표시 안함
 
                         emotion_counter[korean_label] += 1
-                        draw.text((x1, y1 - 30), korean_label, font=font, fill=(0, 255, 0))
+                        color = get_color_for_emotion(korean_label)
+                        draw.text((x1, y1 - 30), korean_label, font=font, fill=color)
                         logger.log(emotion)
                         send_emotion_to_cpp(emotion)
 
@@ -147,6 +148,19 @@ def emotion_to_korean(emotion: str) -> str:
         "surprise": "놀람",
         "unclassified": "분류불가"
     }.get(emotion, "알수없음")
+
+# 감정에 따라 색상 지정
+def get_color_for_emotion(emotion: str) -> tuple:
+    return {
+        "기쁨": (0, 255, 0),
+        "슬픔": (100, 149, 237),
+        "화남": (255, 0, 0),
+        "놀람": (255, 165, 0),
+        "공포": (128, 0, 128),
+        "중립": (200, 200, 200),
+        "역겨움": (85, 107, 47),
+        "분류불가": (255, 255, 255),
+    }.get(emotion, (255, 255, 255))
 
 def parse_emotion_stats(stats_str: str) -> dict:
     stats = {}
